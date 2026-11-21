@@ -4,9 +4,20 @@
 Writes /output/entry.png: an invented passport spread for the Republic
 of Tidemere, a tidal archipelago whose only land link is a causeway
 passable at low water. The image is pre-rendered (drawn with Pillow by
-render.py in the builder's session) and shipped beside this script;
-this program copies it to /output, deterministically and
-byte-identically.
+render_v4.py, which reuses the MRZ/stamp/map helpers of render.py, both
+shipped beside this script) and this program copies it to /output,
+deterministically and byte-identically.
+
+Version 4 of the spread: a redrawn portrait (shaded skin, iris +
+highlight, centre-part hair with bun, V-neck sweater with a gold
+anchor pin), two visa boxes side by side (Aldervik tideway + Kessig
+harbour, the Kessig visa covering the 09-21 JUN 2024 trip), a round
+Kessig harbour stamp, HEIGHT / EYES in place of the duplicated
+SEX / NATIONALITY row, a fingerprint whorl beside the signature,
+display type (Crimson Pro / IBM Plex Serif / Instrument Sans) and a
+thin double frame on each page. Every date still agrees: issued
+02 FEB 2024, all stamps after issue and before expiry 01 FEB 2034,
+and the machine-readable zone carries valid ICAO check digits.
 
 Standard library only: hashlib, os, shutil and sys. No third-party
 packages are needed or used, and no network is touched.
@@ -28,6 +39,14 @@ def sha256_of(path):
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     src = os.path.join(here, "entry.png")
+    # Fail fast on a corrupt or non-PNG source instead of copying
+    # garbage to /output: a PNG must start with its 8-byte signature.
+    with open(src, "rb") as fh:
+        magic = fh.read(8)
+    if magic != b"\x89PNG\r\n\x1a\n":
+        print(f"error: {src} is not a PNG file (bad magic bytes)",
+              file=sys.stderr)
+        return 1
     out_dir = "/output"
     os.makedirs(out_dir, exist_ok=True)
     dst = os.path.join(out_dir, "entry.png")
